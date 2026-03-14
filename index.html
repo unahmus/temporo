@@ -16,7 +16,6 @@
             --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             --glass-bg: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
-            
             --priority-high: #ff5a5f;
             --priority-medium: #ffb400;
             --priority-low: #00d1c1;
@@ -51,7 +50,7 @@
 
         input[type=range] {
             -webkit-appearance: none;
-            appearance: none; /* Correction appliquée ici */
+            appearance: none;
             width: 100%;
             background: transparent;
         }
@@ -116,18 +115,25 @@
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
+        /* Mode Pro : Transparence des tâches non obligatoires */
+        body.pro-mode .calendar-task:not([data-priority="Obligatoire"]) {
+            opacity: 0.15;
+            filter: grayscale(1);
+        }
+
         .task-done {
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
             border-left-color: #FFF !important;
             color: #000 !important;
             transform: scale(0.96);
+            opacity: 1 !important; /* On garde les finies visibles */
         }
 
         .stat-box {
             text-align: center;
-            padding: 10px;
+            padding: 15px;
             background: rgba(255,255,255,0.03);
-            border-radius: 15px;
+            border-radius: 20px;
             border: 1px solid var(--glass-border);
         }
 
@@ -145,7 +151,7 @@
             align-items: flex-start;
         }
         .day-column {
-            min-width: 300px;
+            min-width: 280px;
             flex-shrink: 0;
         }
 
@@ -159,13 +165,23 @@
             gap: 10px;
             transition: all 0.3s ease;
         }
-        .profile-btn:hover {
-            background: rgba(255,255,255,0.1);
-            transform: translateY(-2px);
+
+        .pro-btn-active {
+            background: var(--priority-high) !important;
+            color: white !important;
+            box-shadow: 0 0 20px rgba(255, 90, 95, 0.5);
         }
+
+        .avatar-option {
+            width: 50px; height: 50px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; cursor: pointer; border: 2px solid transparent;
+            background: rgba(255,255,255,0.05); transition: all 0.2s;
+        }
+        .avatar-option.selected { border-color: var(--primary-soft); background: rgba(76, 201, 240, 0.2); }
     </style>
 </head>
-<body>
+<body id="app-body">
 
     <nav id="main-nav" class="view-hidden fixed top-0 w-full p-6 z-50 flex justify-between items-center pointer-events-none">
         <div class="text-xl font-black tracking-widest text-cyan-300 pointer-events-auto cursor-pointer" onclick="switchView('home')">TEMPORO</div>
@@ -175,60 +191,19 @@
         </button>
     </nav>
 
+    <!-- Home -->
     <div id="view-home" class="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-        <nav class="absolute top-0 w-full p-8 flex justify-center">
-            <div class="text-xl font-bold tracking-tight text-cyan-300 uppercase tracking-widest">TEMPORO</div>
-        </nav>
         <main class="max-w-2xl fade-in">
             <h1 class="text-5xl md:text-7xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 to-blue-400">
                 Organise ton temps avec calme.
             </h1>
-            <button id="start-btn" class="btn-gradient px-10 py-4 rounded-2xl text-lg uppercase tracking-wider">
+            <button onclick="switchView('creator')" class="btn-gradient px-10 py-4 rounded-2xl text-lg uppercase tracking-wider">
                 Ouvrir mon agenda
             </button>
         </main>
     </div>
 
-    <div id="view-profile" class="view-hidden min-h-screen p-6 pt-24 max-w-4xl mx-auto">
-        <div class="glass-panel p-8 md:p-12 fade-in">
-            <div class="flex flex-col md:flex-row gap-10 items-center md:items-start">
-                <div class="flex flex-col items-center gap-4">
-                    <div id="profile-avatar-display" class="w-32 h-32 rounded-full bg-white/10 border-4 border-cyan-400/30 flex items-center justify-center text-6xl shadow-2xl">👤</div>
-                    <button onclick="changeAvatar()" class="text-[10px] font-bold uppercase text-cyan-400 hover:underline">Changer d'avatar</button>
-                </div>
-
-                <div class="flex-grow space-y-6 w-full">
-                    <div>
-                        <label class="block text-[10px] font-bold uppercase mb-2 text-slate-500 tracking-wider">Ton Pseudo</label>
-                        <input type="text" id="profile-username" placeholder="Pseudo..." class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-xl font-bold outline-none focus:border-cyan-400/50 text-white" oninput="saveProfile()">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold uppercase mb-2 text-slate-500 tracking-wider">Ta Bio</label>
-                        <textarea id="profile-bio" rows="3" placeholder="Dis-nous en plus sur tes objectifs..." class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm font-medium outline-none focus:border-cyan-400/50 text-slate-300" oninput="saveProfile()"></textarea>
-                    </div>
-
-                    <div class="pt-6 border-t border-white/10">
-                        <h4 class="text-sm font-black text-white uppercase mb-4 italic">Historique de vie</h4>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="stat-box p-6 bg-cyan-400/5">
-                                <span class="block text-[10px] text-slate-500 font-bold uppercase mb-1">Total Réalisées</span>
-                                <span id="stats-life-done" class="text-4xl font-black text-cyan-400">0</span>
-                            </div>
-                            <div class="stat-box p-6 bg-amber-400/5">
-                                <span class="block text-[10px] text-slate-500 font-bold uppercase mb-1">Récompenses</span>
-                                <span id="stats-rewards" class="text-4xl font-black text-amber-400">0</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mt-12 flex justify-center">
-                <button onclick="switchView('creator')" class="bg-white/10 hover:bg-white/20 text-white px-8 py-3 rounded-xl font-bold transition-all uppercase tracking-widest text-xs">← Retour au planning</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Creator -->
     <div id="view-creator" class="view-hidden min-h-screen p-6 pt-24 lg:p-12 lg:pt-24 max-w-7xl mx-auto">
         <div class="flex flex-col lg:flex-row gap-8">
             <div class="lg:w-2/5 flex flex-col fade-in">
@@ -236,19 +211,14 @@
                     <h2 class="text-3xl font-bold mb-1">Mon <span class="text-cyan-400">Planning</span></h2>
                     <p id="task-counter" class="text-slate-500 text-sm italic">Prêt à s'organiser !</p>
                 </div>
-                
                 <div id="task-list" class="flex-grow overflow-y-auto max-h-[50vh] pr-2 custom-scrollbar mb-6">
                     <div id="empty-msg" class="glass-panel p-10 text-center text-slate-500 border-dashed border-2 flex flex-col items-center gap-4">
                         <span>Aucune tâche prévue.</span>
                     </div>
                 </div>
-
-                <div class="space-y-4">
-                    <button id="launch-program-btn" class="w-full bg-white text-slate-900 font-extrabold py-4 rounded-2xl shadow-xl hover:bg-cyan-50 transition-all flex items-center justify-center gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                        Lancer le programme
-                    </button>
-                </div>
+                <button onclick="switchView('calendar')" class="w-full bg-white text-slate-900 font-extrabold py-4 rounded-2xl shadow-xl hover:bg-cyan-50 transition-all">
+                    Voir le planning hebdo
+                </button>
             </div>
 
             <div class="lg:w-3/5">
@@ -256,32 +226,30 @@
                     <div class="flex justify-between items-center mb-8">
                         <h3 class="text-xl font-bold text-white">Nouvelle activité</h3>
                         <div class="flex flex-col items-end text-right">
-                            <span id="digital-clock" class="text-3xl font-bold text-cyan-400 tracking-tight leading-none">08:30</span>
-                            <span id="end-time-preview" class="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-tighter italic">Finit à 09:30</span>
+                            <span id="digital-clock" class="text-3xl font-bold text-cyan-400">08:30</span>
                         </div>
                     </div>
 
                     <div class="space-y-6">
-                        <div class="space-y-6">
-                            <div>
-                                <label class="block text-[10px] font-bold uppercase mb-3 text-slate-500 tracking-wider">Priorité</label>
-                                <div class="flex gap-2" id="priority-selector">
-                                    <button class="priority-chip active" data-priority="Obligatoire">Obligatoire</button>
-                                    <button class="priority-chip" data-priority="Important">Important</button>
-                                    <button class="priority-chip" data-priority="Utile">Utile</button>
-                                </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase mb-3 text-slate-500 tracking-wider">Jour de la semaine</label>
+                            <div class="flex flex-wrap gap-2" id="day-selector">
+                                <button class="day-chip active" data-day="Lundi">Lun</button>
+                                <button class="day-chip" data-day="Mardi">Mar</button>
+                                <button class="day-chip" data-day="Mercredi">Mer</button>
+                                <button class="day-chip" data-day="Jeudi">Jeu</button>
+                                <button class="day-chip" data-day="Vendredi">Ven</button>
+                                <button class="day-chip" data-day="Samedi">Sam</button>
+                                <button class="day-chip" data-day="Dimanche">Dim</button>
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-bold uppercase mb-3 text-slate-500 tracking-wider">Jour de la semaine</label>
-                                <div class="flex flex-wrap gap-2" id="day-selector">
-                                    <button class="day-chip active" data-day="Lundi">Lun</button>
-                                    <button class="day-chip" data-day="Mardi">Mar</button>
-                                    <button class="day-chip" data-day="Mercredi">Mer</button>
-                                    <button class="day-chip" data-day="Jeudi">Jeu</button>
-                                    <button class="day-chip" data-day="Vendredi">Ven</button>
-                                    <button class="day-chip" data-day="Samedi">Sam</button>
-                                    <button class="day-chip" data-day="Dimanche">Dim</button>
-                                </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase mb-3 text-slate-500 tracking-wider">Priorité</label>
+                            <div class="flex gap-2" id="priority-selector">
+                                <button class="priority-chip active" data-priority="Obligatoire">Obligatoire</button>
+                                <button class="priority-chip" data-priority="Important">Important</button>
+                                <button class="priority-chip" data-priority="Utile">Utile</button>
                             </div>
                         </div>
 
@@ -293,107 +261,132 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Heure (<span id="label-h">8h</span>)</label>
-                                <input type="range" id="input-hours" min="0" max="23" value="8">
+                                <input type="range" id="input-hours" min="0" max="23" value="8" oninput="updateDisplay()">
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Minutes (<span id="label-m">30m</span>)</label>
-                                <input type="range" id="input-minutes" min="0" max="59" value="30">
+                                <input type="range" id="input-minutes" min="0" max="59" value="30" oninput="updateDisplay()">
                             </div>
                         </div>
 
                         <div class="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center gap-4">
-                            <span class="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Durée de l'activité (+10m)</span>
+                            <span class="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Durée de l'activité</span>
                             <div class="flex items-center gap-6">
-                                <button class="time-control-btn" onclick="adjustDuration(-10)"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4" /></svg></button>
+                                <button class="time-control-btn" onclick="adjustDuration(-10)">-</button>
                                 <span id="label-duration" class="text-3xl font-black text-white">1h 00m</span>
-                                <button class="time-control-btn" onclick="adjustDuration(10)"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg></button>
+                                <button class="time-control-btn" onclick="adjustDuration(10)">+</button>
                             </div>
                         </div>
 
-                        <button id="add-task-btn" class="btn-gradient w-full py-5 rounded-2xl text-lg font-bold">Ajouter au programme</button>
+                        <button onclick="addTask()" class="btn-gradient w-full py-5 rounded-2xl text-lg font-bold">Ajouter au programme</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Calendar -->
     <div id="view-calendar" class="view-hidden min-h-screen p-6 pt-24">
         <div class="max-w-[1600px] mx-auto fade-in">
-            <div class="glass-panel p-6 mb-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-black text-white italic">DASHBOARD <span class="text-cyan-400">ANALYTICS</span></h2>
-                    <button id="close-calendar" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-2 rounded-xl transition-all text-sm uppercase">← Éditeur</button>
+            <!-- Dashboard en haut du planning -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="glass-panel p-6 col-span-1 md:col-span-2 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-black text-white italic">MON <span class="text-cyan-400">PLANNING HEBDO</span></h2>
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Gère ta semaine efficacement</p>
+                    </div>
+                    <button onclick="toggleProMode()" id="pro-btn" class="bg-white/10 text-white px-8 py-3 rounded-full font-black text-xs uppercase tracking-widest transition-all hover:scale-105">PRO MODE</button>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="stat-box"><span class="block text-[10px] text-slate-500 font-bold uppercase mb-1">Total Tâches</span><span id="dash-total" class="text-2xl font-black text-white">0</span></div>
-                    <div class="stat-box"><span class="block text-[10px] text-slate-500 font-bold uppercase mb-1">À Faire</span><span id="dash-todo" class="text-2xl font-black text-cyan-400">0</span></div>
-                    <div class="stat-box"><span class="block text-[10px] text-slate-500 font-bold uppercase mb-1">Complétées</span><span id="dash-done" class="text-2xl font-black text-green-400">0</span></div>
-                    <div class="stat-box"><span class="block text-[10px] text-slate-500 font-bold uppercase mb-1">Priorité Haute</span><span id="dash-high" class="text-2xl font-black text-rose-500">0</span></div>
+                <div class="glass-panel p-6 flex flex-col justify-center items-center">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase">Tâches totales</span>
+                    <span id="dash-total" class="text-2xl font-black text-white">0</span>
+                </div>
+                <div class="glass-panel p-6 flex flex-col justify-center items-center">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase">Complétion</span>
+                    <span id="dash-percent" class="text-2xl font-black text-cyan-400">0%</span>
                 </div>
             </div>
 
-            <div class="week-grid custom-scrollbar">
-                <div class="day-column glass-panel p-4 min-h-[600px]" data-day="Lundi"><h3 class="text-center font-bold text-cyan-400 mb-6 border-b border-white/10 pb-3 uppercase tracking-widest text-sm">Lundi</h3><div class="tasks-container space-y-3"></div></div>
-                <div class="day-column glass-panel p-4 min-h-[600px]" data-day="Mardi"><h3 class="text-center font-bold text-cyan-400 mb-6 border-b border-white/10 pb-3 uppercase tracking-widest text-sm">Mardi</h3><div class="tasks-container space-y-3"></div></div>
-                <div class="day-column glass-panel p-4 min-h-[600px]" data-day="Mercredi"><h3 class="text-center font-bold text-cyan-400 mb-6 border-b border-white/10 pb-3 uppercase tracking-widest text-sm">Mercredi</h3><div class="tasks-container space-y-3"></div></div>
-                <div class="day-column glass-panel p-4 min-h-[600px]" data-day="Jeudi"><h3 class="text-center font-bold text-cyan-400 mb-6 border-b border-white/10 pb-3 uppercase tracking-widest text-sm">Jeudi</h3><div class="tasks-container space-y-3"></div></div>
-                <div class="day-column glass-panel p-4 min-h-[600px]" data-day="Vendredi"><h3 class="text-center font-bold text-cyan-400 mb-6 border-b border-white/10 pb-3 uppercase tracking-widest text-sm">Vendredi</h3><div class="tasks-container space-y-3"></div></div>
-                <div class="day-column glass-panel p-4 min-h-[600px]" data-day="Samedi"><h3 class="text-center font-bold text-cyan-400 mb-6 border-b border-white/10 pb-3 uppercase tracking-widest text-sm">Samedi</h3><div class="tasks-container space-y-3"></div></div>
-                <div class="day-column glass-panel p-4 min-h-[600px]" data-day="Dimanche"><h3 class="text-center font-bold text-cyan-400 mb-6 border-b border-white/10 pb-3 uppercase tracking-widest text-sm">Dimanche</h3><div class="tasks-container space-y-3"></div></div>
+            <div class="week-grid custom-scrollbar" id="calendar-grid"></div>
+            
+            <div class="mt-8 flex justify-center">
+                <button onclick="switchView('creator')" class="bg-white text-black px-10 py-3 rounded-xl font-bold uppercase text-sm">Retour à l'éditeur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile -->
+    <div id="view-profile" class="view-hidden min-h-screen p-6 pt-24 max-w-4xl mx-auto">
+        <div class="glass-panel p-10 fade-in">
+            <h2 class="text-3xl font-black text-white mb-10 text-center uppercase tracking-widest italic">Éditer mon <span class="text-cyan-400">Profil</span></h2>
+            
+            <div class="flex flex-col items-center gap-8">
+                <!-- Avatar Preview -->
+                <div class="relative">
+                    <div class="w-32 h-32 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 flex items-center justify-center text-6xl shadow-2xl" id="profile-avatar-preview">👤</div>
+                </div>
+
+                <div class="w-full max-w-sm space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase mb-2 text-slate-500 tracking-wider">Ton Nom d'Utilisateur</label>
+                        <input type="text" id="edit-username" maxlength="15" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-center text-xl font-bold outline-none focus:border-cyan-400 transition-all text-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase mb-3 text-slate-500 tracking-wider text-center">Choisir un Avatar</label>
+                        <div class="flex flex-wrap justify-center gap-3" id="avatar-grid">
+                            <div class="avatar-option selected" onclick="selectAvatar(this)">👤</div>
+                            <div class="avatar-option" onclick="selectAvatar(this)">🚀</div>
+                            <div class="avatar-option" onclick="selectAvatar(this)">🐱</div>
+                            <div class="avatar-option" onclick="selectAvatar(this)">🎮</div>
+                            <div class="avatar-option" onclick="selectAvatar(this)">⚡</div>
+                            <div class="avatar-option" onclick="selectAvatar(this)">🎨</div>
+                            <div class="avatar-option" onclick="selectAvatar(this)">🍩</div>
+                            <div class="avatar-option" onclick="selectAvatar(this)">🔥</div>
+                        </div>
+                    </div>
+
+                    <button onclick="saveProfile()" class="btn-gradient w-full py-4 rounded-xl font-black uppercase text-sm">Sauvegarder les modifications</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 w-full mt-10">
+                    <div class="stat-box">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Activités Finies</span>
+                        <span id="stats-done" class="text-3xl font-black text-cyan-400">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Score Temporo</span>
+                        <span id="stats-points" class="text-3xl font-black text-amber-400">0</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         const priorityColors = { 'Obligatoire': '#ff5a5f', 'Important': '#ffb400', 'Utile': '#00d1c1' };
-        const rewardPool = [
-            { icon: "🥤", text: "Pause boisson fraîche !" },
-            { icon: "🎮", text: "15 min de Gaming !" },
-            { icon: "🍿", text: "Snack mérité !" },
-            { icon: "🎧", text: "Musique à fond !" },
-            { icon: "🌟", text: "T'es une star !" }
-        ];
-
-        let tasks = JSON.parse(localStorage.getItem('temporo_tasks_v13')) || [];
-        let profile = JSON.parse(localStorage.getItem('temporo_profile_v1')) || {
-            username: "Utilisateur",
-            bio: "Bienvenue sur ton espace.",
-            avatar: "👤",
-            lifeStats: { done: 0, rewards: 0 }
-        };
-
+        const daysOfWeek = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+        
+        let tasks = JSON.parse(localStorage.getItem('temporo_tasks_v3')) || [];
+        let profile = JSON.parse(localStorage.getItem('temporo_profile_v3')) || { username: "Utilisateur", avatar: "👤", done: 0 };
+        
         let selectedDay = "Lundi";
         let selectedPriority = "Obligatoire";
         let currentDuration = 60;
+        let proModeActive = false;
 
-        const views = { home: 'view-home', creator: 'view-creator', calendar: 'view-calendar', profile: 'view-profile' };
-        
         function switchView(viewKey) {
-            Object.values(views).forEach(id => document.getElementById(id).classList.add('view-hidden'));
-            document.getElementById(views[viewKey]).classList.remove('view-hidden');
+            document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('view-hidden'));
+            document.getElementById('view-' + viewKey).classList.remove('view-hidden');
             
             const nav = document.getElementById('main-nav');
             if(viewKey === 'home') nav.classList.add('view-hidden');
             else nav.classList.remove('view-hidden');
 
             if(viewKey === 'calendar') renderCalendar();
-            if(viewKey === 'profile') loadProfileUI();
             if(viewKey === 'creator') renderTasks();
-        }
-
-        function loadProfileUI() {
-            document.getElementById('profile-username').value = profile.username;
-            document.getElementById('profile-bio').value = profile.bio;
-            document.getElementById('profile-avatar-display').textContent = profile.avatar;
-            document.getElementById('stats-life-done').textContent = profile.lifeStats.done;
-            document.getElementById('stats-rewards').textContent = profile.lifeStats.rewards;
-            updateNav();
-        }
-
-        function saveProfile() {
-            profile.username = document.getElementById('profile-username').value || "Utilisateur";
-            profile.bio = document.getElementById('profile-bio').value;
-            localStorage.setItem('temporo_profile_v1', JSON.stringify(profile));
+            if(viewKey === 'profile') loadProfilePage();
+            
             updateNav();
         }
 
@@ -402,17 +395,16 @@
             document.getElementById('nav-avatar').textContent = profile.avatar;
         }
 
-        function changeAvatar() {
-            const avatars = ["👤", "🚀", "⚡", "🎨", "🌈", "🔥", "💎", "🐱", "🤖", "🦊"];
-            let idx = avatars.indexOf(profile.avatar);
-            profile.avatar = avatars[(idx + 1) % avatars.length];
-            document.getElementById('profile-avatar-display').textContent = profile.avatar;
-            saveProfile();
-        }
-
-        function calculateEndTime(h, m, duration) {
-            let totalMins = parseInt(h) * 60 + parseInt(m) + parseInt(duration);
-            return `${Math.floor(totalMins / 60) % 24}:${(totalMins % 60).toString().padStart(2, '0')}`;
+        function updateDisplay() {
+            const h = document.getElementById('input-hours').value;
+            const m = document.getElementById('input-minutes').value;
+            document.getElementById('label-h').textContent = h + 'h';
+            document.getElementById('label-m').textContent = m + 'm';
+            document.getElementById('digital-clock').textContent = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+            
+            const durH = Math.floor(currentDuration / 60);
+            const durM = currentDuration % 60;
+            document.getElementById('label-duration').textContent = `${durH > 0 ? durH + 'h ' : ''}${durM.toString().padStart(2, '0')}m`;
         }
 
         function adjustDuration(amount) {
@@ -420,44 +412,55 @@
             updateDisplay();
         }
 
-        function updateDisplay() {
-            const h = document.getElementById('input-hours').value;
-            const m = document.getElementById('input-minutes').value;
-            document.getElementById('label-h').textContent = h + 'h';
-            document.getElementById('label-m').textContent = m + 'm';
-            document.getElementById('digital-clock').textContent = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
-            document.getElementById('end-time-preview').textContent = `Finit à ${calculateEndTime(h, m, currentDuration)}`;
-            const durH = Math.floor(currentDuration / 60);
-            const durM = currentDuration % 60;
-            document.getElementById('label-duration').textContent = `${durH > 0 ? durH + 'h ' : ''}${durM.toString().padStart(2, '0')}m`;
-        }
-
         function addTask() {
             const name = document.getElementById('task-name').value.trim() || "Activité sans nom";
-            const h = document.getElementById('input-hours').value;
-            const m = document.getElementById('input-minutes').value;
+            const h = document.getElementById('input-hours').value.padStart(2, '0');
+            const m = document.getElementById('input-minutes').value.padStart(2, '0');
             
             const newTask = {
                 id: Date.now(),
                 name: name,
                 day: selectedDay,
                 priority: selectedPriority,
-                startTime: `${h.padStart(2, '0')}:${m.padStart(2, '0')}`,
-                endTime: calculateEndTime(h, m, currentDuration),
-                durationLabel: document.getElementById('label-duration').textContent,
+                startTime: `${h}:${m}`,
                 completed: false
             };
 
             tasks.push(newTask);
-            localStorage.setItem('temporo_tasks_v13', JSON.stringify(tasks));
+            saveData();
             document.getElementById('task-name').value = '';
             renderTasks();
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveData();
+            renderTasks();
+        }
+
+        function toggleComplete(id) {
+            const t = tasks.find(x => x.id === id);
+            if(t) {
+                t.completed = !t.completed;
+                if(t.completed) profile.done++; else profile.done = Math.max(0, profile.done - 1);
+                saveData();
+                renderCalendar();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('temporo_tasks_v3', JSON.stringify(tasks));
+            localStorage.setItem('temporo_profile_v3', JSON.stringify(profile));
+            updateNav();
         }
 
         function renderTasks() {
             const list = document.getElementById('task-list');
             list.innerHTML = '';
-            const sorted = [...tasks].sort((a, b) => a.startTime.localeCompare(b.startTime));
+            const sorted = [...tasks].sort((a, b) => {
+                if (a.day !== b.day) return daysOfWeek.indexOf(a.day) - daysOfWeek.indexOf(b.day);
+                return a.startTime.localeCompare(b.startTime);
+            });
             sorted.forEach(t => {
                 const card = document.createElement('div');
                 card.className = 'task-card flex justify-between items-center';
@@ -469,96 +472,123 @@
                              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">${t.day}</span>
                         </div>
                         <h4 class="font-bold text-white text-lg">${t.name}</h4>
-                        <div class="text-sm text-cyan-400 font-bold">${t.startTime} - ${t.endTime}</div>
+                        <div class="text-sm text-cyan-400 font-bold">${t.startTime}</div>
                     </div>
-                    <button class="text-slate-500 hover:text-red-400 p-2" onclick="deleteTask(${t.id})"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                    <button class="text-slate-500 hover:text-red-400 p-2" onclick="deleteTask(${t.id})">✕</button>
                 `;
                 list.appendChild(card);
             });
             document.getElementById('empty-msg').style.display = tasks.length ? 'none' : 'flex';
-            document.getElementById('task-counter').textContent = tasks.length ? `${tasks.length} activité(s)` : "Prêt à s'organiser !";
+            document.getElementById('task-counter').textContent = `${tasks.length} activité(s)`;
         }
 
-        function deleteTask(id) {
-            tasks = tasks.filter(t => t.id !== id);
-            localStorage.setItem('temporo_tasks_v13', JSON.stringify(tasks));
-            renderTasks();
-        }
-
-        function toggleComplete(id) {
-            const idx = tasks.findIndex(t => t.id === id);
-            if(idx !== -1) {
-                if(!tasks[idx].completed) {
-                    tasks[idx].completed = true;
-                    tasks[idx].reward = rewardPool[Math.floor(Math.random() * rewardPool.length)];
-                    profile.lifeStats.done++;
-                    profile.lifeStats.rewards++;
-                } else {
-                    tasks[idx].completed = false;
-                    profile.lifeStats.done = Math.max(0, profile.lifeStats.done - 1);
-                    profile.lifeStats.rewards = Math.max(0, profile.lifeStats.rewards - 1);
-                }
-                localStorage.setItem('temporo_tasks_v13', JSON.stringify(tasks));
-                localStorage.setItem('temporo_profile_v1', JSON.stringify(profile));
-                renderCalendar();
+        function toggleProMode() {
+            proModeActive = !proModeActive;
+            const btn = document.getElementById('pro-btn');
+            const body = document.getElementById('app-body');
+            if(proModeActive) {
+                btn.classList.add('pro-btn-active');
+                body.classList.add('pro-mode');
+            } else {
+                btn.classList.remove('pro-btn-active');
+                body.classList.remove('pro-mode');
             }
         }
 
         function renderCalendar() {
-            document.getElementById('dash-total').textContent = tasks.length;
-            document.getElementById('dash-todo').textContent = tasks.filter(t => !t.completed).length;
-            document.getElementById('dash-done').textContent = tasks.filter(t => t.completed).length;
-            document.getElementById('dash-high').textContent = tasks.filter(t => t.priority === 'Obligatoire').length;
-
-            document.querySelectorAll('.day-column .tasks-container').forEach(c => c.innerHTML = '');
-            const sorted = [...tasks].sort((a, b) => a.startTime.localeCompare(b.startTime));
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
             
-            sorted.forEach(t => {
-                const col = document.querySelector(`.day-column[data-day="${t.day}"] .tasks-container`);
-                if(col) {
-                    const el = document.createElement('div');
-                    el.className = `calendar-task cursor-pointer ${t.completed ? 'task-done' : 'text-white'}`;
-                    el.style.borderLeftColor = t.completed ? '#FFF' : priorityColors[t.priority];
-                    el.onclick = () => toggleComplete(t.id);
-                    if(t.completed) {
-                        el.innerHTML = `<div class="text-center py-2 flex flex-col items-center"><span class="text-2xl mb-1">${t.reward.icon}</span><div class="font-black text-[9px] uppercase tracking-tighter">Réalisé !</div><div class="font-bold text-[10px] italic opacity-80">${t.reward.text}</div></div>`;
-                    } else {
-                        el.innerHTML = `<div class="flex justify-between items-center mb-2"><span class="badge-priority" style="background:${priorityColors[t.priority]}">${t.priority}</span><span class="font-black text-cyan-300 text-[10px]">${t.startTime}</span></div><div class="font-bold text-base leading-tight mb-2 text-white">${t.name}</div><div class="text-[10px] font-medium text-slate-400 italic">${t.durationLabel}</div>`;
-                    }
-                    col.appendChild(el);
-                }
+            // Dashboard stats
+            const total = tasks.length;
+            const done = tasks.filter(t => t.completed).length;
+            const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+            document.getElementById('dash-total').textContent = total;
+            document.getElementById('dash-percent').textContent = percent + '%';
+
+            daysOfWeek.forEach(day => {
+                const col = document.createElement('div');
+                col.className = 'day-column glass-panel p-4 min-h-[500px] flex flex-col';
+                col.innerHTML = `<h3 class="text-center font-bold text-cyan-400 mb-6 border-b border-white/10 pb-3 uppercase tracking-widest text-[11px]">${day}</h3>`;
+                
+                const container = document.createElement('div');
+                container.className = 'space-y-3 flex-grow';
+                
+                tasks.filter(t => t.day === day)
+                     .sort((a,b) => a.startTime.localeCompare(b.startTime))
+                     .forEach(t => {
+                        const tel = document.createElement('div');
+                        tel.className = `calendar-task cursor-pointer ${t.completed ? 'task-done' : 'text-white'}`;
+                        tel.style.borderLeftColor = t.completed ? '#FFF' : priorityColors[t.priority];
+                        tel.setAttribute('data-priority', t.priority);
+                        tel.onclick = () => toggleComplete(t.id);
+                        tel.innerHTML = `
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-[9px] font-black uppercase opacity-60">${t.priority}</span>
+                                <span class="font-black text-cyan-300 text-[10px]">${t.startTime}</span>
+                            </div>
+                            <div class="font-bold text-sm leading-tight truncate">${t.name}</div>
+                        `;
+                        container.appendChild(tel);
+                });
+                
+                col.appendChild(container);
+                grid.appendChild(col);
             });
         }
+
+        // Profile Logic
+        function loadProfilePage() {
+            document.getElementById('edit-username').value = profile.username;
+            document.getElementById('profile-avatar-preview').textContent = profile.avatar;
+            document.getElementById('stats-done').textContent = profile.done;
+            document.getElementById('stats-points').textContent = profile.done * 50;
+            
+            // Highlight selected avatar
+            document.querySelectorAll('.avatar-option').forEach(opt => {
+                if(opt.textContent === profile.avatar) opt.classList.add('selected');
+                else opt.classList.remove('selected');
+            });
+        }
+
+        function selectAvatar(el) {
+            document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('profile-avatar-preview').textContent = el.textContent;
+        }
+
+        function saveProfile() {
+            const newName = document.getElementById('edit-username').value.trim() || "Utilisateur";
+            const newAvatar = document.querySelector('.avatar-option.selected').textContent;
+            
+            profile.username = newName;
+            profile.avatar = newAvatar;
+            saveData();
+            switchView('creator');
+        }
+
+        // Setup Buttons
+        document.querySelectorAll('.day-chip').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.day-chip').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedDay = btn.dataset.day;
+            };
+        });
+
+        document.querySelectorAll('.priority-chip').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.priority-chip').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedPriority = btn.dataset.priority;
+            };
+        });
 
         window.onload = () => {
             updateNav();
             renderTasks();
             updateDisplay();
-
-            // Sélécteurs
-            document.querySelectorAll('.day-chip').forEach(btn => {
-                btn.onclick = () => {
-                    document.querySelectorAll('.day-chip').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    selectedDay = btn.dataset.day;
-                };
-            });
-
-            document.querySelectorAll('.priority-chip').forEach(btn => {
-                btn.onclick = () => {
-                    document.querySelectorAll('.priority-chip').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    selectedPriority = btn.dataset.priority;
-                };
-            });
         };
-
-        document.getElementById('start-btn').onclick = () => switchView('creator');
-        document.getElementById('launch-program-btn').onclick = () => switchView('calendar');
-        document.getElementById('close-calendar').onclick = () => switchView('creator');
-        document.getElementById('add-task-btn').onclick = addTask;
-        document.getElementById('input-hours').oninput = updateDisplay;
-        document.getElementById('input-minutes').oninput = updateDisplay;
     </script>
 </body>
 </html>
