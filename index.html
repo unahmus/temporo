@@ -115,7 +115,6 @@
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* Mode Pro : Transparence des tâches non obligatoires */
         body.pro-mode .calendar-task:not([data-priority="Obligatoire"]) {
             opacity: 0.15;
             filter: grayscale(1);
@@ -126,7 +125,7 @@
             border-left-color: #FFF !important;
             color: #000 !important;
             transform: scale(0.96);
-            opacity: 1 !important; /* On garde les finies visibles */
+            opacity: 1 !important;
         }
 
         .stat-box {
@@ -227,6 +226,7 @@
                         <h3 class="text-xl font-bold text-white">Nouvelle activité</h3>
                         <div class="flex flex-col items-end text-right">
                             <span id="digital-clock" class="text-3xl font-bold text-cyan-400">08:30</span>
+                            <span id="end-time-preview" class="text-xs font-bold text-slate-500 uppercase tracking-tighter">Finit à 09:30</span>
                         </div>
                     </div>
 
@@ -288,7 +288,6 @@
     <!-- Calendar -->
     <div id="view-calendar" class="view-hidden min-h-screen p-6 pt-24">
         <div class="max-w-[1600px] mx-auto fade-in">
-            <!-- Dashboard en haut du planning -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div class="glass-panel p-6 col-span-1 md:col-span-2 flex items-center justify-between">
                     <div>
@@ -321,7 +320,6 @@
             <h2 class="text-3xl font-black text-white mb-10 text-center uppercase tracking-widest italic">Éditer mon <span class="text-cyan-400">Profil</span></h2>
             
             <div class="flex flex-col items-center gap-8">
-                <!-- Avatar Preview -->
                 <div class="relative">
                     <div class="w-32 h-32 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 flex items-center justify-center text-6xl shadow-2xl" id="profile-avatar-preview">👤</div>
                 </div>
@@ -395,6 +393,16 @@
             document.getElementById('nav-avatar').textContent = profile.avatar;
         }
 
+        function calculateEndTime(startH, startM, durationMin) {
+            let totalStartMin = parseInt(startH) * 60 + parseInt(startM);
+            let totalEndMin = totalStartMin + durationMin;
+            
+            let endH = Math.floor(totalEndMin / 60) % 24;
+            let endM = totalEndMin % 60;
+            
+            return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+        }
+
         function updateDisplay() {
             const h = document.getElementById('input-hours').value;
             const m = document.getElementById('input-minutes').value;
@@ -405,6 +413,10 @@
             const durH = Math.floor(currentDuration / 60);
             const durM = currentDuration % 60;
             document.getElementById('label-duration').textContent = `${durH > 0 ? durH + 'h ' : ''}${durM.toString().padStart(2, '0')}m`;
+
+            // Update end time preview
+            const endTime = calculateEndTime(h, m, currentDuration);
+            document.getElementById('end-time-preview').textContent = `Finit à ${endTime}`;
         }
 
         function adjustDuration(amount) {
@@ -416,6 +428,7 @@
             const name = document.getElementById('task-name').value.trim() || "Activité sans nom";
             const h = document.getElementById('input-hours').value.padStart(2, '0');
             const m = document.getElementById('input-minutes').value.padStart(2, '0');
+            const endTime = calculateEndTime(h, m, currentDuration);
             
             const newTask = {
                 id: Date.now(),
@@ -423,6 +436,8 @@
                 day: selectedDay,
                 priority: selectedPriority,
                 startTime: `${h}:${m}`,
+                endTime: endTime,
+                duration: currentDuration,
                 completed: false
             };
 
@@ -471,8 +486,10 @@
                              <span class="badge-priority" style="background:${priorityColors[t.priority]}">${t.priority}</span>
                              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">${t.day}</span>
                         </div>
-                        <h4 class="font-bold text-white text-lg">${t.name}</h4>
-                        <div class="text-sm text-cyan-400 font-bold">${t.startTime}</div>
+                        <h4 class="font-bold text-white text-lg leading-tight">${t.name}</h4>
+                        <div class="text-xs text-cyan-400 font-bold mt-1">
+                            ${t.startTime} <span class="text-slate-500 mx-1">→</span> ${t.endTime || '--:--'}
+                        </div>
                     </div>
                     <button class="text-slate-500 hover:text-red-400 p-2" onclick="deleteTask(${t.id})">✕</button>
                 `;
@@ -499,7 +516,6 @@
             const grid = document.getElementById('calendar-grid');
             grid.innerHTML = '';
             
-            // Dashboard stats
             const total = tasks.length;
             const done = tasks.filter(t => t.completed).length;
             const percent = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -523,9 +539,12 @@
                         tel.setAttribute('data-priority', t.priority);
                         tel.onclick = () => toggleComplete(t.id);
                         tel.innerHTML = `
-                            <div class="flex justify-between items-center mb-1">
+                            <div class="flex justify-between items-start mb-1">
                                 <span class="text-[9px] font-black uppercase opacity-60">${t.priority}</span>
-                                <span class="font-black text-cyan-300 text-[10px]">${t.startTime}</span>
+                                <div class="flex flex-col items-end">
+                                    <span class="font-black text-cyan-300 text-[10px]">${t.startTime}</span>
+                                    <span class="text-[8px] opacity-40 font-bold">${t.endTime || ''}</span>
+                                </div>
                             </div>
                             <div class="font-bold text-sm leading-tight truncate">${t.name}</div>
                         `;
@@ -537,14 +556,12 @@
             });
         }
 
-        // Profile Logic
         function loadProfilePage() {
             document.getElementById('edit-username').value = profile.username;
             document.getElementById('profile-avatar-preview').textContent = profile.avatar;
             document.getElementById('stats-done').textContent = profile.done;
             document.getElementById('stats-points').textContent = profile.done * 50;
             
-            // Highlight selected avatar
             document.querySelectorAll('.avatar-option').forEach(opt => {
                 if(opt.textContent === profile.avatar) opt.classList.add('selected');
                 else opt.classList.remove('selected');
@@ -567,7 +584,6 @@
             switchView('creator');
         }
 
-        // Setup Buttons
         document.querySelectorAll('.day-chip').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.day-chip').forEach(b => b.classList.remove('active'));
